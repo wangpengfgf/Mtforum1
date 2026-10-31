@@ -1249,7 +1249,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
         return _buildCommentCard(
           row.post,
           replyParent: row.parent,
-          suppressReplyContext: false,
+          suppressReplyContext: row.directReply,
           hideReplyPreview: true,
           isReply: true,
         );
