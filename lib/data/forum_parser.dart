@@ -542,6 +542,7 @@ class ForumParser {
         replyQuoteText: replyRelation.quotedText,
         hiddenHint: parsedMessage.hiddenHint,
         page: page,
+        appreciators: _extractAppreciators(block, baseUrl),
       ));
     }
 
@@ -2036,6 +2037,7 @@ class ForumParser {
         lower.contains('/static/image/') ||
         lower.contains('avatar.php') ||
         lower.contains('/uc_server/avatar') ||
+        lower.contains('/uc_server/data/avatar') ||
         classes.contains('top_tximg') ||
         classes.contains('avatar')) {
       return false;
@@ -2043,6 +2045,7 @@ class ForumParser {
 
     var insidePostBody = false;
     var insideAttachmentContainer = false;
+    var insideAppreciatorList = false;
     html_dom.Element? parent = image.parent;
     while (parent != null) {
       final parentClasses =
@@ -2057,6 +2060,13 @@ class ForumParser {
       }
       if (parentClasses.any(
         (value) =>
+            value.contains('comiis_recommend_list') ||
+            value.contains('comiis_dzhan'),
+      )) {
+        insideAppreciatorList = true;
+      }
+      if (parentClasses.any(
+        (value) =>
             value.contains('attachment') ||
             value.contains('attachlist') ||
             value.contains('comiis_attach') ||
@@ -2068,6 +2078,8 @@ class ForumParser {
       }
       parent = parent.parent;
     }
+
+    if (insideAppreciatorList) return false;
 
     // 楼层补图扫描会遍历 pid 块中的所有 <img>。Comiis 会在“最新评论”
     // 以及固定楼层间插入板块/推荐模块，这些图标通常位于
@@ -2163,7 +2175,8 @@ class ForumParser {
           SmileyCatalog.isForumSmileyUrl(url) ||
           url.contains('/static/image/') ||
           url.contains('avatar.php') ||
-          url.contains('/uc_server/avatar')) {
+          url.contains('/uc_server/avatar') ||
+          url.contains('/uc_server/data/avatar')) {
         continue;
       }
       if (!result.contains(url)) result.add(url);
@@ -2402,6 +2415,35 @@ class ForumParser {
     }
 
     return _ReplyRelation(pid: rawPid, name: rawName);
+  }
+
+  /// 解析楼层底部的“赞赏/推荐”用户头像列表。
+  ///
+   /// 列表中的第一个 li 是“N 赞”计数的跳转按钮，只保留带 uid 的用户项。
+  List<PostAppreciator> _extractAppreciators(String block, String baseUrl) {
+    final fragment = html_parser.parseFragment(block);
+    final result = <PostAppreciator>[];
+    final seen = <String>{};
+
+    for (final list in fragment.querySelectorAll('ul.comiis_recommend_list_a')) {
+      for (final anchor in list.querySelectorAll('a[href]')) {
+        final href = (anchor.attributes['href'] ?? '')
+            .replaceAll('&amp;', '&');
+        final uid = RegExp(r'uid=(\d+)').firstMatch(href)?.group(1);
+        if (uid == null || uid.isEmpty || !seen.add(uid)) continue;
+
+        final image = anchor.querySelector('img');
+        final avatar = _absoluteUrl(
+          image?.attributes['src'] ??
+              image?.attributes['data-src'] ??
+              image?.attributes['data-original'],
+          baseUrl,
+        );
+        result.add(PostAppreciator(uid: uid, avatarUrl: avatar));
+      }
+    }
+
+    return result;
   }
 
   String? _cleanThreadExcerpt(String? value) {

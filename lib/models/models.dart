@@ -77,6 +77,14 @@ class Thread {
   String get detailUrl => 'https://bbs.binmt.cc/thread-$tid-1-1.html';
 }
 
+/// 赞赏（推荐）楼层的用户。
+class PostAppreciator {
+  final String uid;
+  final String? avatarUrl;
+
+  const PostAppreciator({required this.uid, this.avatarUrl});
+}
+
 /// 帖子楼层。
 class Post {
   final String pid;
@@ -98,6 +106,7 @@ class Post {
   final String? replyQuoteText;
   final String? hiddenHint;
   final int page;
+  final List<PostAppreciator> appreciators;
 
   const Post({
     required this.pid,
@@ -119,6 +128,7 @@ class Post {
     this.replyQuoteText,
     this.hiddenHint,
     this.page = 1,
+    this.appreciators = const [],
   });
 }
 

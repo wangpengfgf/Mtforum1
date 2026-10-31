@@ -112,6 +112,123 @@ Future<void> _openPostLink(BuildContext context, String rawUrl) async {
   }
 }
 
+Future<void> _showAppreciatorsSheet(
+  BuildContext context,
+  List<PostAppreciator> users,
+) {
+  if (users.isEmpty) return Future<void>.value();
+
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      final theme = Theme.of(sheetContext);
+      final colors = theme.colorScheme;
+
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 380),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '赞赏用户（${users.length}）',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 18,
+                    runSpacing: 16,
+                    children: [
+                      for (final user in users)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Navigator.of(sheetContext).pop();
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                settings: RouteSettings(
+                                  name: '/user/${user.uid}',
+                                ),
+                                builder: (_) =>
+                                    UserProfilePage(uid: user.uid),
+                              ),
+                            );
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipOval(
+                                child: SizedBox(
+                                  width: 46,
+                                  height: 46,
+                                  child: (user.avatarUrl?.trim().isNotEmpty ??
+                                          false)
+                                      ? CachedNetworkImage(
+                                          imageUrl: user.avatarUrl!.trim(),
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => ColoredBox(
+                                            color: colors
+                                                .surfaceContainerHighest,
+                                          ),
+                                          errorWidget: (_, __, ___) =>
+                                              _AppreciatorAvatarFallback(
+                                            colors: colors,
+                                          ),
+                                        )
+                                      : _AppreciatorAvatarFallback(
+                                          colors: colors,
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'UID ${user.uid}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _AppreciatorAvatarFallback extends StatelessWidget {
+  final ColorScheme colors;
+
+  const _AppreciatorAvatarFallback({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: colors.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.person_rounded,
+        size: 22,
+        color: colors.outline,
+      ),
+    );
+  }
+}
+
 class ThreadDetailPage extends StatefulWidget {
   final String tid;
   final String? targetPid;
@@ -2333,37 +2450,51 @@ class _PostCard extends StatelessWidget {
                 },
               ),
             ],
-            if (!post.isOp || onEdit != null) ...[
+            if (post.appreciators.isNotEmpty || !post.isOp || onEdit != null) ...[
               const SizedBox(height: 2),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (onEdit != null)
-                      TextButton.icon(
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: const Text('编辑'),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
+              Row(
+                children: [
+                  if (post.appreciators.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () =>
+                          _showAppreciatorsSheet(context, post.appreciators),
+                      icon: Icon(
+                        Icons.favorite_rounded,
+                        size: 16,
+                        color: colors.primary,
                       ),
-                    if (!post.isOp)
-                      TextButton.icon(
-                        onPressed: onReply,
-                        icon: const Icon(Icons.reply_rounded, size: 16),
-                        label: const Text('回复'),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
+                      label: Text('赞赏 ${post.appreciators.length}'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: colors.primary,
                       ),
-                  ],
-                ),
+                    ),
+                  const Spacer(),
+                  if (onEdit != null)
+                    TextButton.icon(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('编辑'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  if (!post.isOp)
+                    TextButton.icon(
+                      onPressed: onReply,
+                      icon: const Icon(Icons.reply_rounded, size: 16),
+                      label: const Text('回复'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                ],
               ),
             ],
             if (compactFloor)
