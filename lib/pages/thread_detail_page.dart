@@ -117,92 +117,105 @@ Future<void> _showAppreciatorsSheet(
   List<PostAppreciator> users,
 ) {
   if (users.isEmpty) return Future<void>.value();
+  final width = MediaQuery.sizeOf(context).width;
 
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     useSafeArea: true,
+    constraints: BoxConstraints(maxWidth: width),
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
       final colors = theme.colorScheme;
 
-      return ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 380),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '赞赏用户（${users.length}）',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 18,
-                    runSpacing: 16,
-                    children: [
-                      for (final user in users)
-                        InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(sheetContext).pop();
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                settings: RouteSettings(
-                                  name: '/user/${user.uid}',
-                                ),
-                                builder: (_) =>
-                                    UserProfilePage(uid: user.uid),
-                              ),
-                            );
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ClipOval(
-                                child: SizedBox(
-                                  width: 46,
-                                  height: 46,
-                                  child: (user.avatarUrl?.trim().isNotEmpty ??
-                                          false)
-                                      ? CachedNetworkImage(
-                                          imageUrl: user.avatarUrl!.trim(),
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => ColoredBox(
-                                            color: colors
-                                                .surfaceContainerHighest,
-                                          ),
-                                          errorWidget: (_, __, ___) =>
-                                              _AppreciatorAvatarFallback(
-                                            colors: colors,
-                                          ),
-                                        )
-                                      : _AppreciatorAvatarFallback(
-                                          colors: colors,
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'UID ${user.uid}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colors.outline,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+      return SizedBox(
+        width: width,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 380),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '赞赏用户（${users.length}）',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 18,
+                      runSpacing: 16,
+                      children: [
+                        for (final user in users)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  settings: RouteSettings(
+                                    name: '/user/${user.uid}',
+                                  ),
+                                  builder: (_) =>
+                                      UserProfilePage(uid: user.uid),
+                                ),
+                              );
+                            },
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ClipOval(
+                                  child: SizedBox(
+                                    width: 46,
+                                    height: 46,
+                                    child: (user.avatarUrl
+                                                ?.trim()
+                                                .isNotEmpty ??
+                                            false)
+                                        ? CachedNetworkImage(
+                                            imageUrl: user.avatarUrl!.trim(),
+                                            fit: BoxFit.cover,
+                                            httpHeaders: {
+                                              'Referer': ApiService.baseUrl,
+                                              'User-Agent':
+                                                  'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36',
+                                            },
+                                            placeholder: (_, __) =>
+                                                ColoredBox(
+                                              color: colors
+                                                  .surfaceContainerHighest,
+                                            ),
+                                            errorWidget: (_, __, ___) =>
+                                                _AppreciatorAvatarFallback(
+                                              colors: colors,
+                                            ),
+                                          )
+                                        : _AppreciatorAvatarFallback(
+                                            colors: colors,
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'UID ${user.uid}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.outline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );

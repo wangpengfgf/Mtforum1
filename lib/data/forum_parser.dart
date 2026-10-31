@@ -2037,7 +2037,6 @@ class ForumParser {
         lower.contains('/static/image/') ||
         lower.contains('avatar.php') ||
         lower.contains('/uc_server/avatar') ||
-        lower.contains('/uc_server/data/avatar') ||
         classes.contains('top_tximg') ||
         classes.contains('avatar')) {
       return false;
@@ -2165,18 +2164,26 @@ class ForumParser {
 
   List<String> _extractImagesFromRaw(String raw, String baseUrl) {
     final result = <String>[];
+    // 赞赏用户头像列表也包含 <img>，raw 兜底扫描前先整段剔除，避免头像
+    // 再次混入帖子图片。
+    final cleaned = raw.replaceAll(
+      RegExp(
+        r'''<ul\b[^>]*class\s*=\s*['"][^'"]*comiis_recommend_list[^'"]*['"][^>]*>[\s\S]*?</ul>''',
+        caseSensitive: false,
+      ),
+      ' ',
+    );
     final pattern = RegExp(
       r'''<img\b[^>]*(?:zoomfile|file|data-original|data-src|src)\s*=\s*['"]([^'"]+)['"][^>]*>''',
       caseSensitive: false,
     );
-    for (final match in pattern.allMatches(raw)) {
+    for (final match in pattern.allMatches(cleaned)) {
       final url = _absoluteUrl(match.group(1), baseUrl);
       if (url == null ||
           SmileyCatalog.isForumSmileyUrl(url) ||
           url.contains('/static/image/') ||
           url.contains('avatar.php') ||
-          url.contains('/uc_server/avatar') ||
-          url.contains('/uc_server/data/avatar')) {
+          url.contains('/uc_server/avatar')) {
         continue;
       }
       if (!result.contains(url)) result.add(url);
