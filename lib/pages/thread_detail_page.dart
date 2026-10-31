@@ -1221,9 +1221,6 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             hideQuotedContext: true,
             suppressReplyContext: suppressReplyContext,
             hideReplyPreview: hideReplyPreview,
-            replyLabelOverride: isReply && !suppressReplyContext && parent != null
-                ? '回复 @${parent.authorName ?? post.replyToName ?? '用户'}'
-                : null,
             highlighted: targeted || contextHighlighted,
             onReplyContextTap: suppressReplyContext || replyParentPid == null
                 ? null
@@ -1252,7 +1249,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
         return _buildCommentCard(
           row.post,
           replyParent: row.parent,
-          suppressReplyContext: row.directReply,
+          suppressReplyContext: false,
           hideReplyPreview: true,
           isReply: true,
         );
@@ -1592,6 +1589,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     final media = MediaQuery.of(context);
     final comments = _comments;
     final rows = _targetMode ? null : _commentRows();
+    final totalCommentCount = _commentSource().length;
     final rawCommentCount = _rawComments.length;
     final filteredCommentCount = _filteredOutComments.length;
     final allCommentsFiltered = rawCommentCount > 0 &&
@@ -1665,7 +1663,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                                     : _targetMode
                                         ? '已加载 ${comments.length} 条 · '
                                             '第 $_minLoadedPage-$_maxLoadedPage 页'
-                                        : '${comments.length} 条评论 · '
+                                        : '$totalCommentCount 条评论 · '
                                             '${_reverseOrder ? '倒序' : '正序'}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.outline,
