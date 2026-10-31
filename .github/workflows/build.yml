@@ -37,59 +37,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Restore cached signing key
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/mtforum-release.keystore
-          key: mtforum-release-keystore-v1
-
-      - name: Prepare signing config
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Prepare fixed signing config
         run: |
           set -euo pipefail
           KEYSTORE="$RUNNER_TEMP/mtforum-release.keystore"
-
-          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
-            STORE_PASSWORD="$ANDROID_STORE_PASSWORD"
-            KEY_ALIAS="$ANDROID_KEY_ALIAS"
-            KEY_PASSWORD="$ANDROID_KEY_PASSWORD"
-          else
-            STORE_PASSWORD="mtforum-ci-signing"
-            KEY_ALIAS="mtforum"
-            KEY_PASSWORD="mtforum-ci-signing"
-            if [ ! -f "$KEYSTORE" ]; then
-              keytool -genkeypair \
-                -keystore "$KEYSTORE" \
-                -alias "$KEY_ALIAS" \
-                -keyalg RSA \
-                -keysize 4096 \
-                -validity 10000 \
-                -storepass "$STORE_PASSWORD" \
-                -keypass "$KEY_PASSWORD" \
-                -dname "CN=MT Forum, OU=CI, O=wangpengfgf, L=Unknown, ST=Unknown, C=CN"
-            fi
-          fi
-
+          base64 --decode signing/mtforum-release.keystore.b64 > "$KEYSTORE"
           chmod 600 "$KEYSTORE"
           cat > key.properties <<EOF
-          storePassword=$STORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
+          storePassword=mtforum-ci-signing
+          keyPassword=mtforum-ci-signing
+          keyAlias=mtforum
           storeFile=$KEYSTORE
           EOF
-
-      - name: Upload signing key backup
-        uses: actions/upload-artifact@v4
-        with:
-          name: mtforum-signing-key-backup
-          path: ${{ runner.temp }}/mtforum-release.keystore
-          if-no-files-found: error
-          retention-days: 7
 
       - name: Build release APK (arm64)
         run: flutter build apk --release --target-platform android-arm64
