@@ -2,8 +2,8 @@ import '../models/models.dart';
 
 /// 将论坛的平铺楼层整理成可渲染的评论串。
 ///
-/// MT 移动版不提供结构化父 PID，因此只在“显式父 PID 有效”或
-/// “用户名 + 时间/引用正文”得到唯一匹配时归组，其余楼层保持独立。
+/// MT 移动版不提供结构化父 PID，因此优先按“被引用正文”匹配父楼层，
+/// 再用引用时间与用户名作为辅助信号；无法唯一匹配时保持独立。
 class CommentThreadService {
   const CommentThreadService();
 
@@ -22,25 +22,41 @@ class CommentThreadService {
       return explicitPid;
     }
 
-    final replyName = post.replyToName?.trim() ?? '';
-    if (replyName.isEmpty) return null;
-
     final quoteKey = _textKey(post.replyQuoteText);
+    final replyName = (post.replyToName ?? '').trim().toLowerCase();
     final timeKey = _timeKey(post.replyToTime);
+    if (quoteKey.isEmpty && replyName.isEmpty && timeKey.isEmpty) {
+      return null;
+    }
+
     final scored = <({Post post, int score})>[];
 
     for (var index = 0; index < postIndex; index++) {
       final candidate = source[index];
-      if ((candidate.authorName?.trim() ?? '') != replyName) continue;
+      final ownKey = _ownTextKey(candidate);
 
       var score = 0;
+      // 被引用正文是最可靠的父楼层线索：移动版模板的“回复 用户名”
+      // 经常被服务端改写成楼主昵称（例如所有引用都显示 Cynnie），
+      // 因此不能再要求用户名一致，否则引用同一楼层的回复会被拆散。
+      if (quoteKey.isNotEmpty && ownKey.isNotEmpty) {
+        if (ownKey == quoteKey) {
+          score += 300;
+        } else if (quoteKey.length >= 2 && ownKey.contains(quoteKey)) {
+          score += 200;
+        } else if (ownKey.length >= 2 && quoteKey.contains(ownKey)) {
+          score += 120;
+        }
+      }
       final candidateTimeKey = _timeKey(candidate.postTime);
       if (timeKey.isNotEmpty && candidateTimeKey == timeKey) {
         score += 100;
       }
-      if (quoteKey.length >= 2 && _ownTextKey(candidate).contains(quoteKey)) {
-        score += 80;
+      final name = (candidate.authorName ?? '').trim().toLowerCase();
+      if (replyName.isNotEmpty && name == replyName) {
+        score += 40;
       }
+
       if (score > 0) scored.add((post: candidate, score: score));
     }
 
