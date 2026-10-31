@@ -1,0 +1,35 @@
+# Flutter
+build/
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock
+.pub-cache/
+.pub/
+ios/
+linux/
+macos/
+web/
+windows/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+key.properties
+*.jks
+*.keystore
+**/google-services.json
+scripts/
+test/
+docs/
+
+# Local build artifacts / uploads
+dist/
+.uploads/
